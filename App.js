@@ -3,6 +3,10 @@ import { StyleSheet, Button, View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import { BleManager } from 'react-native-ble-plx'
+
+const _BleManager = new BleManager();
+
 function HomeScreen({ navigation }) {
   return (
     <View style={{flex: 1, padding: 20, flexDirection: 'column'}}>   
@@ -57,6 +61,41 @@ function DetailsScreen() {
     </View>
   );
 }
+const startScan = () => {
+  _BleManager.startDeviceScan(Null, {
+    allowDuplicates: false,
+    },
+    async (error, device) => {
+      setDisplaText('Scanning...');
+      if (error) {
+        _BleManager.stopDeviceScan();
+      }
+      console.log(device.localName, device.name);
+      if (device.localName == 'Test' || device.name == 'Test') {
+        setDevices([...devices, device]);
+        _BleManager.stopDeviceScan();} }, );};
+
+const connectDevice = device => {
+  _BleManager.stopDeviceScan();
+_BleManager.connectToDevice(device.id).then(async device => {
+             await device.discoverAllServicesAndCharacteristics();
+             _BleManager.stopDeviceScan();
+             setDisplaText(`Device connected\n with ${device.name}`);
+              setConnectedDevice(device);
+                   setDevices([]);
+  device.services().then(async service => {
+      for (const ser of service) {
+          ser.characteristics().then(characteristic => {
+          getCharacteristics([...characteristics, characteristic]);
+          });
+  }
+});
+});
+};
+
+const disconnectDevice = () => {
+  connectedDevice.cancelConnection();
+};
 
 const Stack = createNativeStackNavigator();
 
